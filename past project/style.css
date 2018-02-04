@@ -1,0 +1,16 @@
+
+body{
+	font-family: 'Roboto', sans-serif;
+
+}
+
+#scatterplot{
+	margin: auto;
+	text-align: center; 
+}
+.title{
+	margin-left: 20%;
+	margin-right: 20%;
+	text-align: center;
+	
+}

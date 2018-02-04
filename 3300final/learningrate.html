@@ -1,0 +1,254 @@
+<html>
+<head>
+<!-- Load the d3 library. -->
+<script src="d3.v4.min.js" charset="utf-8"></script>
+<style>
+.bar rect { fill: #ccc; }
+.axis path { fill: none; stroke: black;}
+.axis line { stroke: black; }
+.axis text { font-size: x-small; }
+path.curve { fill: none; stroke: #333; stroke-width: 3; opacity: 0.4; }
+text.sparklineLabel { fill: #aaa; }
+path.sparkline { fill: none; stroke: #333; stroke-width: 1; }
+</style>
+</head>
+<body>
+
+<div id="plot"></div>
+
+<p>PART C. Include your written response to part C here.</p>
+<p>Making the learning rate smaller would minimize errors since there are smaller, and more, steps towards fitting the curve. Larger values for the learning rate also make it easier to guess/learn what a,b, and c are, and b specifically, because the first click will flip the parabola based on b's negativity/positivity. Users will also move towards the accurate a, b, and c values more quickly with higher learning rates.</p>
+
+<script>
+
+var height = 400;
+var width = 400;
+var padding = 40;
+var sparklineHeight = 50;
+var sparklineWidth = 200;
+
+var svg = d3.select("#plot").append("svg")
+.attr("height", height + 2 * padding).attr("width", 2 * width + 4 * padding);
+
+// Divide the SVG into two halves, one showing data points
+var dataGroup = svg.append("g").attr("transform", "translate(" + padding + "," + padding + ")");
+//  ... and another showing how model variables change.
+var progressGroup = svg.append("g")
+.attr("transform", "translate(" + (width + 3*padding) + "," + padding + ")");
+
+// create groups for "sparklines" for several model parameters
+var learningRateGroup = progressGroup.append("g")
+.attr("transform", "translate(0," + 0 * sparklineHeight + ")");
+var errorGroup = progressGroup.append("g")
+.attr("transform", "translate(0," + 1 * sparklineHeight + ")");
+var aGroup = progressGroup.append("g")
+.attr("transform", "translate(0," + 2 * sparklineHeight + ")");
+var bGroup = progressGroup.append("g")
+.attr("transform", "translate(0," + 3 * sparklineHeight + ")");
+var cGroup = progressGroup.append("g")
+.attr("transform", "translate(0," + 4 * sparklineHeight + ")");
+
+var xScale = d3.scaleLinear().domain([-6, 6]).range([0, width]);
+var yScale = d3.scaleLinear().domain([-6, 6]).range([height, 0]);
+
+// Convenience functions for applying the x and y scales
+function plotX(d) {	return xScale(d.x); }
+function plotY(d) {	return yScale(d.y); }
+
+var xAxis = d3.axisBottom(xScale);
+dataGroup.append("g").call(xAxis).attr("transform", "translate(0, "+ (height) + ")");
+
+var yAxis = d3.axisLeft(yScale);
+dataGroup.append("g").call(yAxis);
+
+var gaussian = d3.randomNormal();
+
+var realModel = { a: 0.7, b: -0.1, c: 0.2 };
+
+// Generate from a model with a = 0.7, b = -0.1, c = 5.0, with noise = 0.25
+var points = [];
+for (var i = 0; i < 100; i++) {
+	// place points uniformly from 0 to 10 in x dimension
+	var x = Math.random() * 10 - 5;
+
+	// generate the associated y from the curve defined by a, b, c.
+	var y = realModel.a * x + realModel.b * x*x + realModel.c;
+	// add noise
+	y += gaussian() * 0.25;
+	
+	points.push({ x: x, y: y });
+}
+
+// The usual...
+var circles = dataGroup.selectAll("circle").data(points).enter()
+.append("circle")
+.attr("r", 2)
+.style("opacity", 0.4)
+.attr("cx", plotX)
+.attr("cy", plotY);
+
+// Randomly initialize a linear model with three variables
+var model = { a: gaussian(), b: gaussian(), c: 0 };
+
+// Make a prediction from the curved linear model.
+// Each parameter corresponds with an input variable:
+//  a goes with x,
+//  b goes with x squared,
+//  c is the "intercept" constant.
+function predict(x, model) {
+	return model.a * x + model.b * x*x + model.c;
+}
+
+// Calculate the sum of the squared difference between our current
+//  model's predictions and the real y.
+function calculateErrors(points, model) {
+	var squaredError = 0.0;
+	
+	points.forEach(function (point) {
+		point.prediction = predict(point.x, model);
+		point.error = point.y - point.prediction;
+		squaredError += point.error * point.error;
+	});
+	
+	return squaredError;
+}
+
+// The learning rate determines how far we move in the direction of the 
+//   gradient update. Large values mean we take larger steps.
+// Specify an initial learning rate:
+var learningRate = 0.01;
+//small: 
+//var learningRate = 0.001;
+// And a rule for changing that rate:
+var rateDecay = 1.0;
+
+// Store values of variables
+var learningRateHistory = [learningRate];
+var errorHistory = [calculateErrors(points, model)];
+var aHistory = [model.a];
+var bHistory = [model.b];
+var cHistory = [model.c];
+
+svg.on("click", updateModel);
+
+// Update the model's parameters based on the gradient of 
+//  the squared error function.
+function updateModel() {
+	var aUpdate = 0.0;
+	var bUpdate = 0.0;
+	var cUpdate = 0.0;
+	
+	learningRate *= rateDecay;
+	
+	// Make sure errors are calculated
+	calculateErrors(points, model);
+	
+	points.forEach(function (point) {
+		point.prediction = predict(point.x, model);
+		point.error = point.y - point.prediction;
+		
+		// The derivative with respect to each model parameter
+		// is the sum of the error times the parameter's variable.
+		aUpdate += point.x * point.error;
+		bUpdate += (point.x * point.x) * point.error;
+		cUpdate += point.error;
+	});
+	
+	model.a += learningRate * aUpdate / points.length;
+	model.b += learningRate * bUpdate / points.length;
+	model.c += learningRate * cUpdate / points.length;
+	
+	learningRateHistory.push(learningRate);
+	errorHistory.push(calculateErrors(points, model));
+	aHistory.push(model.a);
+	bHistory.push(model.b);
+	cHistory.push(model.c);
+	
+	sparkline(learningRateGroup, learningRateHistory, "learningRate");
+	sparkline(errorGroup, errorHistory, "error");
+	sparkline(aGroup, aHistory, "a");
+	sparkline(bGroup, bHistory, "b");
+	sparkline(cGroup, cHistory, "c");
+	
+	displayCurve(model);
+}
+
+
+var fitPath = dataGroup.append("path")
+.attr("class", "curve");
+
+displayCurve(model);
+
+// PART A
+
+// Input: a model object (either real or estimated)
+function displayCurve(model)  {
+	// Generate a set of x,y pairs. The x values should be evenly spaced 
+	//  between -6 and 6 with 0.2 between each point.
+	var xval = [];
+	for (var i = -6; i < 6; i+=0.2){
+		xval.push(i);
+	}
+	// The y values should be the predicted y for each x according
+	//  to the model passed to this function.
+	//THE SET 
+	var obj = [];
+	for (var i=0;i<xval.length;i++){
+		var el = predict(xval[i], model);
+		obj.push({x : xval[i], y : el});
+	}
+
+	var scaleX = d3.scaleLinear().domain([-6,6]).range([0,width]);
+	var scaleY = d3.scaleLinear().domain([-6,6]).range([height,0]);
+	// Generate a d3.line() function that creates the "d" attribut for a <path>
+	var line = d3.line()
+				.x(function (d){return scaleX(d.x);})
+				.y(function (d){return scaleY(d.y);});
+	// Update "fitPath" to show the (approximate) curve defined by the model.
+	fitPath.attr("d", line(obj));
+}
+
+// PART B
+
+// Input: a d3 selection of an SVG element; an array of numbers; a string
+function sparkline(g, values, label) {
+	// Remove everything from the current group
+	g.selectAll("*").remove();
+	
+	// Define an x scale with domain from 0 to 50, and a y scale appropriate for 
+	//  the "values" array. (Include some padding between sparklines)
+	var scaleX = d3.scaleLinear().domain([0,50]).range([10,sparklineWidth-10]);
+
+	//find the min and max of values array 
+	var min = values[0];
+	var max = values[0];
+	var grapharr = [];
+	[1,2,0]
+	for (var i=0;i<values.length;i++){
+		if (values[i] < min){
+			min = values[i];
+		}
+		if (values[i] > max){
+			max = values[i];
+		}
+		grapharr.push({x:i,y:values[i]});
+	}
+
+	var scaleY = d3.scaleLinear().domain([min, max]).range([sparklineHeight-10, 10]);
+
+	// Generate a function from d3.line() to plot "values" using your scales
+	var line = d3.line()
+				.x(function (d){return scaleX(d.x);})
+				.y(function (d){return scaleY(d.y);});
+	// Add a <path> for the sparkline and a <text> element for the label
+	g.append("path")
+		.attr("d", line(grapharr))
+		.attr("class", "curve");
+	g.append("text")
+		.text(label)
+		.attr("transform", "translate(0,30)");
+}
+
+</script>
+</body>
+</html>

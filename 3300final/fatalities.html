@@ -1,0 +1,73 @@
+<html>
+<head>
+<!-- Load the d3 library. -->
+<script src="d3.v4.min.js" charset="utf-8"></script>
+<style>
+.bar rect { fill: #ccc; }
+.axis path { fill: none; stroke: black;}
+.axis line { stroke: black; }
+.axis text { font-size: x-small; }
+.question {font-style: bold;}
+path.timeseries { fill: none; stroke: #aaa; stroke-width: 3; }
+</style>
+</head>
+<body>
+
+<div id="plot"></div>
+
+<div id="responses">
+	<p class="question">Integrating data from multiple sources can cause problems. Do you have any concerns about this traffic fatality data?</p>
+	<p class="question">What factor do you think might have caused the observed increase in fatalities? What additional information would you collect in order to test that hypothesis?</p>
+	<p>Increased affordability of automobiles and increased car manufacturing means that more and more people will own cars, lending to more congestion on the roads. With higher traffic levels, accidents are even more likely to happen. I think that is part of the problem, and the other part could lie in distracted driving. There has also been a rise in smartphone usage, and many people still check their phones while driving. In order to test this hypothesis, I would look into data about car purchases over the years, as well as smartphone usage to see if there is a significant correlation between those two factors and the number of deaths on the road.</p>
+</div>
+
+<script>
+
+d3.json("fatalities.json", function(data){
+	var height = 500;
+	var width = 800;
+	var padding = 30;
+
+	var svg = d3.select("#plot").append("svg")
+	.attr("height", height)
+	.attr("width", width);
+
+	//make the axes
+
+	// Define scales, axes.
+	var scaleX = d3.scaleLinear().domain([1899,2016]).range([0, width-40]);
+	var xAxis = d3.axisBottom(scaleX);
+	var chart = svg.append("g");
+	chart.append("g")
+		.call(xAxis)
+		.attr("transform","translate(35,480)");
+
+	var scaleY = d3.scaleLinear().domain([26,55000]).range([height-40, 0]);
+	var yAxis = d3.axisLeft(scaleY);
+	chart.append("g").call(yAxis).attr("transform", "translate(35,20)");
+
+	// * Collect data from https://en.wikipedia.org/wiki/List_of_motor_vehicle_deaths_in_U.S._by_year 
+	// * Add the value for 2016 from http://www.nsc.org/NewsDocuments/2017/12-month-estimates.pdf
+	// * Plot the number of traffic fatalities per year.
+	/*var x = d3.scaleTime().range([0, width]);
+	var y = d3.scaleLinear().range([height, 0]);*/
+	var line = d3.line()
+				.x(function (d){return scaleX(Number(d.year)); })
+				.y(function (d){return scaleY(Number(d.fatalities)); })
+	var group = svg.append("g");
+	group.selectAll("path")
+			.data(data).enter()
+			.append("path")
+			.attr("d", function (d){return line(d);})
+
+			.attr("fill", "none")
+			.attr("stroke", "green")
+			.attr("stroke-width", 2)
+			.attr("transform", "translate(35)");
+});
+
+
+
+</script>
+</body>
+</html>

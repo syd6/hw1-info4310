@@ -1,0 +1,66 @@
+#scatterplot{
+	margin: auto;
+	font-family: Roboto Condensed;
+	text-align: center;
+}
+body{
+	width: 75%;
+	background-color: white;
+	margin: auto;
+	margin-top: 0;
+	padding-bottom: 2em;
+	font-family: Roboto Condensed;
+}
+
+#title {
+	padding-top: 1em;
+	text-align: center;
+	margin-top: 0;
+	font-family: Roboto Condensed;
+	font-size: 270%;
+}
+
+#description {
+	font-size: 110%;
+	color: #666;
+	margin: auto;
+	width: 90%;
+	margin-top: 0;
+}
+
+#details {
+	font-family: Roboto Condensed;
+	font-size: 110%;
+	color: #666;
+	margin: auto;
+	width: 90%;
+	padding-top: 0.5em;
+	padding-bottom: 1.5em;
+}
+
+footer {
+	font-family: Roboto Condensed;
+	height: auto;
+	width: 90%;
+	text-align: center;
+	padding: 0;
+	margin: auto;
+	border: solid #696969 2px;
+	padding-bottom: 1em;
+}
+
+a {
+	color: #666;
+	text-decoration: none;
+}
+
+a:hover {
+	color: #885ead;
+	cursor: pointer;
+}
+
+#links {
+	font-family: Roboto Condensed;
+	padding-top: 0.5em;
+	color: #666;
+}

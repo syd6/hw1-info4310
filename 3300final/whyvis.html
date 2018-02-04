@@ -1,0 +1,101 @@
+<html>
+<head>
+<script src="d3.v4.min.js" charset="utf-8"></script>
+<style>
+svg { border: solid black 1px; }
+</style>
+</head>
+<body>
+
+<table id="stats">
+	<tr><th>Name</th><th>X mean</th><th>Y mean</th><th>X StdDev</th><th>Y StdDev</th><th>Corr</th></tr>
+</table>
+
+<div id="plots"></div>
+
+<div id="responses">
+	<p>Why do we like visual displays of quantitative information?</p>
+	<p>Visual displays of quantitative information help us make sense of sets information that are otherwise too unwieldy and large to decipher. Images are retained in our minds for a much longer time and make a stronger impression than rows and columns of numbers do.</p>
+</div>
+
+<script>
+
+/*OLD: var heigth = 200;*/
+var height = 200;
+var width = 200;
+
+var datasets;
+
+function parseLine(row) {
+	//CORRECTION: row["x"] to row.x, same for row["y"]. Change Nubmer to Number
+	row["x"] = Number(row["x"]);
+	row["y"] = Number(row["y"]);
+	//CORRECTION: add a 'return row;' line
+	return row;
+}
+
+var formatter = d3.format(".4f");
+//CORRECTION: changed d3.scale.linear() to d3.scaleLinear
+/*OLD: var scaleX = d3.scale.linear().domain([0,100]).range([0, width]);	*/
+var scaleX = d3.scaleLinear().domain([0,100]).range([0, width]);
+/*OLD: var scaleY = d3.scale.linear().domain([0,100]).range([height, 0]);*/
+var scaleY = d3.scaleLinear().domain([0,100]).range([height, 0]);
+
+//CHANGE: "Datasourus" to "Datasaurus", got rid of 'error'
+//OLD: d3.tsv("DatasourusDozen.tsv", parseLine, function (error, data) {
+d3.tsv("DatasaurusDozen.tsv", parseLine, function (error, data) {
+	//CHANGE: "d.Dataset" to "return d.dataset" (lowercase, and added a return)
+	//IN THE WORKS: HAVE TO CALL PARSELINE SOMEHOW rwz = parseLine(data);
+	datasets = d3.nest().key(function (d) { return d.dataset; }).entries(data);	
+	
+	//CHANGE: add a pound symbol in front of stats and plot because they are ids. Also changed plot to plots (added an s)
+	var table = d3.select("#stats");
+	var plots = d3.select("#plots");
+	for (var i = 0; i < datasets.length; i++) {
+		//CHANGED: datasets.values to datasets[i].values;
+		var points = datasets[i].values;
+		
+		//CHANGED: added a 'd' in between function (), they were empty 
+		var meanX = d3.mean(points, function (d) { return d.x; });
+		var meanY = d3.mean(points, function (d) { return d.y; });
+		var devX = d3.deviation(points, function (d) { return d.x; });
+		var devY = d3.deviation(points, function (d) { return d.y; });
+		
+		// The math here is correct (I'm not *that* mean)
+		//added a 'd' in between paratheses of function ()
+		var corr = d3.sum(points, function (d) {
+			return (d.x - meanX) * (d.y - meanY);
+		});
+		corr /= ((points.length - 1) * devX * devY);
+		
+		var row = table.append("tr");
+		row.append("td").text(datasets[i].key);
+		row.append("td").text(formatter(meanX));
+		row.append("td").text(formatter(meanY));
+		row.append("td").text(formatter(devX));
+		row.append("td").text(formatter(devY));
+		row.append("td").text(formatter(corr));
+		
+		var svg = plots.append("svg")
+		.attr("height", height)
+		.attr("width", width);
+		
+		svg.selectAll("circle").data(points)
+		//added: enter()
+		.enter()
+		.append("circle")
+		.attr("r", 2)
+		//CHANGED "x" to "cx" and "y" to "cy"
+		.attr("cx", function (d) { return scaleX(d.x); })
+		//CHANGED d.x to d.y
+		.attr("cy", function (d) { return scaleY(d.y); })
+		//CHANGED "style" to "attr" and "color" to "fill"
+		.attr("fill", "#43a2ca");
+	}
+});
+
+// Source: https://www.autodeskresearch.com/publications/samestats
+
+</script>
+</body>
+</html>

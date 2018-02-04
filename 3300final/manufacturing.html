@@ -1,0 +1,182 @@
+<html>
+<head>
+<!-- Load the d3 library. -->
+<script src="d3.v4.min.js" charset="utf-8"></script>
+<style>
+.bar rect { fill: #ccc; }
+.axis path { fill: none; stroke: black;}
+.axis line { stroke: black; }
+.axis text { font-size: x-small; }
+path.timeseries { fill: none; stroke: #333; stroke-width: 3; opacity: 0.4; }
+</style>
+</head>
+<body>
+
+<div id="jobsPlot"></div>
+
+<div id="jobChangePlot"></div>
+
+<div id="responses">
+	<p>How has NY manufacturing done relative to OH? Was there a difference between how these states fared in the 1990s, the 2000s, and the 2010s?</p>
+	<p>It is much higher than OH, and consistently over the years.</p>
+	<p>What question can you answer from the change-in-jobs plot that would be difficult, or impossible, to answer from the original jobs plot?</p>
+	<p>Going the other way, what question can you answer from the original jobs plot that would be difficult, or impossible, to answer from the change-in-jobs plot?</p>
+</div>
+
+<script>
+
+var height = 500;
+var width = 800;
+var padding = 30;
+var sectorScale = d3.scaleOrdinal(d3.schemeCategory20);
+
+// A useful variable reference outside the scope of the tsv callback.
+var stateTimeseries;
+// Plot the employment timeseries for each selected state from 1990 to 2016
+function plotJobs(stateTimeseries) {
+	d3.select("#jobsPlot").append("svg")
+		.attr("height", height)
+		.attr("width", width)
+		.attr("id", "plotjobs");
+
+	// Define scales, axes.
+	var scaleX = d3.scaleTime().domain([new Date("1990-01-01"), new Date("2016-02-01")]).range([0, width-40]);
+	var xAxis = d3.axisBottom(scaleX);
+	var chart = d3.select("#plotjobs").append("g").attr("id","chart");
+	chart.append("g")
+		.call(xAxis)
+		.attr("transform","translate(35,480)");
+
+	var scaleY = d3.scaleLinear().domain([0,2200]).range([height-40, 0]);
+	var yAxis = d3.axisLeft(scaleY);
+	chart.append("g").call(yAxis).attr("transform", "translate(35,20)");
+	// Add <path> elements for NY, TN, WA, OH
+	//create line and plot the paths for the states
+	var valuelinejobs = d3.line()
+					.x(function (d) {return scaleX(d.Date);})
+					.y(function (d) {return scaleY(d.Jobs);});
+
+	var paths = chart.selectAll("path").data(stateTimeseries);
+
+	paths.enter().append("path")
+		.merge(paths)
+		.attr("d", function(d){
+			return valuelinejobs(d.values);
+		})
+		.attr("stroke", function (sector, i){
+			return sectorScale(i);
+		})
+		.attr("fill", "none")
+		.attr("stroke-width", 2)
+		.attr("transform", "translate(35,20)")
+		.append("g")
+		.append("text")
+		.text(function (d){return d.values.State;});
+	// Add <text> labels for all states at the right margin.
+	
+}
+// Plot the change in employment timeseries for the same states from 1990 to 2016.
+function plotJobChange(stateTimeseries) {
+	d3.select("#jobChangePlot").append("svg")
+		.attr("height", height)
+		.attr("width", width)
+		.attr("id", "plotjobchange");
+
+	// Define scales, axes.
+	var scaleX2 = d3.scaleTime().domain([new Date("1990-01-01"), new Date("2016-02-01")]).range([0, width-40]);
+	//var scaleX2 = d3.scaleLinear().domain([1990,2016]).range([0, width-40]);
+	var xAxis2 = d3.axisBottom(scaleX2);
+	var chart2 = d3.select("#plotjobchange").append("g").attr("id", "chart2");
+	chart2.append("g")
+		.call(xAxis2)
+		.attr("transform","translate(35,480)");
+
+	var scaleY2 = d3.scaleLinear().domain([0,20]).range([height-40, 0]);
+	var yAxis2 = d3.axisLeft(scaleY2);
+	chart2.append("g").call(yAxis2).attr("transform", "translate(35,20)");
+	// Add <path> elements for NY, TN, WA, OH
+	var valuelinejobschange = d3.line()
+					.x(function (d) {return scaleX2(d.Date);})
+					.y(function (d) {return scaleY2(d.v);});
+		
+	var paths = chart2.selectAll("path").data(stateTimeseries);
+
+	paths.enter().append("path")
+		.merge(paths)
+		.attr("d", function(d){
+			return valuelinejobschange(d.values);
+		})
+		.attr("stroke", function (sector, i){
+			return sectorScale(i);
+		})
+		.attr("fill", "none")
+		.attr("stroke-width", 2)
+		.attr("transform", "translate(35,-180)");
+
+}
+
+	
+// Parse incoming data appropriately: numbers as numbers, dates as Dates.
+function parseLine(row) {
+	row.Jobs = Number(row.Jobs);
+	row.Date = new Date(row.Date);
+	return row;
+}
+
+var formatter = d3.format(".4f");
+var scaleX = d3.scaleLinear().domain([new Date("1990-01-01"), new Date("2016-02-01")]).range([0, width]);
+
+var selectedStates = ["NY", "TN", "OH", "WA"];
+
+function isSelected(d) {
+	if (selectedStates.indexOf(d.key) != -1) {
+		return true;
+	}
+	return false;
+}
+
+d3.tsv("manufacturing.txt", parseLine, function (error, data) {
+	stateTimeseries = d3.nest().key(function (d) { 
+		
+		if (selectedStates.indexOf(d.State) != -1){
+			//console.log(d.State);
+			return d.State;
+		}
+	})
+	.entries(data);
+	
+	stateTimeseries.forEach(function (d) {
+		var values = d.values;
+		// Add smoothing. For each object in the time series, set the Jobs variable
+		//  to the average of the previous value, the current value, and the next value.
+		// Do not modify the first and last objects.
+		for (var i=1;i<values.length-1;i++){
+			
+			values[i].Jobs = (Number(values[i-1].Jobs) + Number(values[i].Jobs) + Number(values[i+1].Jobs))/3;	
+		}
+		for (var i=0;i<values.length;i++){
+			// Calculate the "velocity" of jobs. For each object in the time series,
+			//  add a variable "v" that is the difference between the current Jobs value
+			//  and the previous value. Set v for the first object to 0.
+			if (i==0){
+				values[i].v = 0;
+			}
+			else{
+				values[i].v = Number(values[i].Jobs)-Number(values[i-1].Jobs);
+			}
+			//console.log(values[i]["v"]);
+		}
+		// Add smoothing to the "v" values, in the same way you did for the Jobs values above.
+		for (var i=1;i<values.length-1;i++){
+			values[i].v = (Number(values[i-1].v) + Number(values[i].v) + Number(values[i+1].v))/3;	
+			//console.log(values[i].v);
+		}	
+	});
+	// Create two plots.
+	plotJobs(stateTimeseries);
+	plotJobChange(stateTimeseries);	
+});
+
+</script>
+</body>
+</html>

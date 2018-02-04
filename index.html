@@ -1,0 +1,138 @@
+<!doctype HTML>
+<html>
+	<head>
+		<script src="https://d3js.org/d3.v4.min.js"></script>
+	</head>
+	<body>
+		<!--notes: 
+		find out how many different types of disasters exist
+
+	-->
+		
+
+		<script>
+			/*SVG*/
+			width = 400;
+			height = 800;
+			margins = {top: 20, right: 20, bottom: 20, left: 40};
+			var svg = d3.select("body")
+						.append("svg")
+						.attr("width", width)
+               			.attr("height", height);
+			
+			//y axis upper range: 5000000, lower range: 101
+			//x axis: types, years 
+
+			xRange = d3.scaleLinear().range([margins.left, width - margins.right]).domain([0, 300]);
+			yRange = d3.scaleLinear().range([height - margins.top, margins.bottom]).domain([101, 5000000]);
+			xAxis = d3.axisBottom(xRange);
+			var chart = svg.append("g");
+			chart.append("g")
+				.call(xAxis)
+				.attr("transform","translate(35,480)");
+			yAxis = d3.axisLeft(yRange);
+			chart.append("g")
+				.call(yAxis)
+				.attr("transform", "translate(74,20)");
+
+			d3.csv("disasters_killed_over100.csv", function(data){
+				//variables
+				var typesOfDisasters;
+				var typesOfCountries;
+				//1:1 mapping with typesOfCountries
+				var countriesFrequency;
+				//1:1 mapping with typesOfDisasters
+				var disastersFrequency
+
+				/*****FUNCTION: see how many unique disaster types there are*/
+				function uniqueTypes(data) {
+					let setOfDisasters = new Set();
+					//for every row of data, store in a set???
+					for (var i=0;i<data.length;i++){
+						//add the type of disaster into the set if it doesn't exist already
+						setOfDisasters.add(data[i].Type.toLowerCase());
+					}
+					return setOfDisasters
+				}
+				//call the function, store in variable
+				typesOfDisasters = uniqueTypes(data);
+				console.log(typesOfDisasters);
+
+				/*****FUNCTION: see how many unique countries there are*/
+				function uniqueCountries(data) {
+					let setOfCountries = new Set();
+					//for every row of data, store in a set???
+					for (var i=0;i<data.length;i++){
+						//add the location into the set if it doesn't exist already
+						setOfCountries.add(data[i].Country.toLowerCase());
+					}
+					return setOfCountries;
+				}
+				typesOfCountries = uniqueCountries(data);
+				console.log(typesOfCountries);
+
+				/*****FUNCTION: see which countries appear the most*/
+				function mostTraumatizingCountries(data){
+					var countriescount = [];
+					typesOfCountries.forEach(function (value) {
+					
+						var count = 0;
+						for (var i=0;i<data.length;i++){
+							if (value == data[i].Country.toLowerCase()){
+								count += 1;
+							}
+						}
+						countriescount.push(count);
+					});
+					
+					//return a hashmap with the countries mapped to the number of times they appear
+					return countriescount;
+				}
+
+				countriesFrequency = mostTraumatizingCountries(data);
+				console.log(countriesFrequency);
+
+
+				/*****FUNCTION: see which disasters happened the most*/
+				function mostTraumatizingDisasters(data){
+					var disasterscount = [];
+					typesOfDisasters.forEach(function (value) {
+						
+						var count = 0;
+						for (var i=0;i<data.length;i++){
+							if (value == data[i].Type.toLowerCase()){
+								count += 1;
+							}
+						}
+						disasterscount.push(count);
+					});
+					
+					//return a hashmap with the countries mapped to the number of times they appear
+					return disasterscount;
+				}
+
+				disastersFrequency = mostTraumatizingDisasters(data);
+				console.log(disastersFrequency);
+
+
+
+				/*****FUNCTION: map countries to disasters most commonly had*/
+				
+				
+
+
+
+
+
+
+				
+				
+			});
+			
+
+		
+			
+			
+		</script>
+	</body>
+</html>

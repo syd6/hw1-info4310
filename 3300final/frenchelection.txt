@@ -1,0 +1,22 @@
+## a. How does each map use color? Answer in terms of color values such as hue, saturation, and lightness. (Focus on the colors themselves, talk about how they are placed in the next question.)
+
+The maps on Bloomberg, ft, the Guardian and The New York Times use colors that are opposite to each other to represent the two opposing candidates (Bloomberg and NYT actually both use blue and yellow, but the colors are swapped for each candidate). The lemonade map makes use of hue differences to show the difference between the candidates (Le Pen is gray, while Macron is yellow, indicating Macron's domination).  
+
+Bloomberg, the Guardian, Lemonade, and New York Times all use saturation/gradients to show density of voters in each region. Ft is the only map that does not make use of saturation/gradients.
+
+
+## b. How does each map present administrative divisions (region, department, commune)? How does this choice affect what is communicated?
+
+Bloombergs' map is not divided into comunes at all (save for a small box that shows Paris) and instead chooses to mark several cities, while maps from The Guardian, Lemonade, and NYT are divided into communes. FT map is divided into larger regions.
+For the maps that are divided into communes, it is easier to see a breakdown of specific areas that strongly or weakly support each candidate. Bloomberg's map is interesting, showing an overall leaning of the country towards one candidate and emphasizing that Paris, specifically, is overwhelmingly in support of Macron. FT also decided to highlight a few important cities of France (Paris, Lyon, and Marseille).
+
+
+## c. How does each map deal with regions of high density and outlying regions?
+Each map highlights regions of high density (implying importance) by providing separate boxes around the map that display/magnify the region.
+
+
+## d. What elements are used (or not used) in each map to help the reader recognize the meaning of different elements? What does this tell you about the designers' expectations for their audience?
+The percentages are not explicitly labeled, but we know that it stands for percentage that voted for each candidate. The designers expect their audience to understand the meaning of the colors and how they connect to the numbers, assuming that their audience has seen similar maps before and understands what they are displaying.  
+
+## e. What is missing? What is a piece of information you would like to have that is not present in any of these maps?
+Populations of each commune. Although the numbers in the NYT map indicate that Macron amassed twice the number of votes than Le Pen did, based on the maps and the geographical size of regions that he won, it seems that he earned more than twice of Le Pen's votes. It would be helpful to see how large (in terms of population size) each region was to see where most of the votes / support came from for each candidate. 

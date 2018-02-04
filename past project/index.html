@@ -1,0 +1,575 @@
+<!doctype HTML>
+<html>
+<head>
+	<title>Marriage V. Political Affiliation</title>
+	<!--data collected from: http://www.gallup.com/poll/203117/gop-maintains-edge-state-party-affiliation-2016.aspx?g_source=party%20affiliation%20by%20state&g_medium=search&g_campaign=tiles-->
+	<meta charset="utf-8">
+	<link rel="stylesheet" href="css/style.css">
+	<script src="http://d3js.org/d3.v4.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <link href="https://fonts.googleapis.com/css?family=Oswald" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link href="https://fonts.googleapis.com/css?family=Lato" rel="stylesheet">
+  <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+  <script src="libraries/jquery.line.js"></script>
+  <script src="libraries/tinycolor.js"></script>
+    <link href="https://fonts.googleapis.com/css?family=Roboto+Condensed:300" rel="stylesheet">
+
+</head>
+<body>
+	<!-- Research question-->
+	<h1 id = "title">How does political affiliation predict if you'll get married?</h1>
+
+	<!-- Visualization description -->
+	<div id = "details">
+	<p>Through the visualization, we hoped to showcase the relationship between marital status and political affiliation in each state. More specifically, we wanted to demonstrate the marriage gap phenomenon, which <a href = "https://en.wikipedia.org/wiki/Marriage_gap">Wikipedia</a> describes as the “observed economic and political disparities in the US between those who are married and those who are single.” </p>
+
+	<p>Based on lifestyle and political estimations, the percentage of married men and women in each state is mapped against the political leaning of the corresponding state in the 2004 election. In the visualization, the size of the circle indicates the state’s population of women who have married and the color of the circle represents the overall state party affiliation. Situated on a color scale, bluer hues symbolize stronger Democrat affiliation and redder hues symbolize stronger Republican affiliation.</p>
+
+	<p>Hovering on a state will elaborate the political affiliation strength and marriage statistics of men and women in the selected state. Clicking on the state will displayed more details.</p>
+	</div>
+
+	<!-- Scatterplot visualization -->
+	<div id="scatterplot"></div>
+		<script>
+		// Scatterplot dimensions
+	    var width = 800;
+	    var height = 600;
+	   	var padding = 80;
+
+		var mData; // Marriage data
+		var pData; // Political data
+	    var maxDemocrats = 55.2;
+	    var minDemocrats = 27.0;
+	    var minMarried = 5.3; // Connecticut
+	    var maxMarried = 31.0; // Nevada
+		
+		var lineupdate;
+		var hoverypos = 500;
+		var hoverxpos = 500;
+		var line = $('body').line(0,0,0,0) ;
+		$('.line').css('borderColor','#ededed').css('opacity','0').css('transition','opacity 50ms');
+
+	    // Hover dimensions
+		var widthhover = 400;
+		var heighthover = 225;
+		var heighthoverex = heighthover * 3;
+		var hoverex = false;
+	    
+	    // Color of circles
+	    var colorScale = d3.scaleLinear()
+	    					.range(['#3f9dfb','#ff2626'])
+	    					.domain([0.3,0.7])
+
+	    // Adding scatterplot
+	    var svg = d3.select("#scatterplot").append("svg")
+	    			.attr("height", height+2*padding).attr("width", width+2*padding)
+	    			.append("g").attr("transform", "translate("+padding+","+padding+")").style("user-select", "none");
+
+	    // Adding hover
+	   	var hoverpop = d3.select("body")
+							.append("svg")
+							.attr("id", "svgMain")
+							.style("pointer-events", "none")
+							.style("width", widthhover+
+								"px")
+							.style("height", heighthover+"px")
+							.style("background-color", "#ededed")
+							.style("position", "absolute")
+							.style("z-index", "10")
+							.style("visibility", "hidden")
+							.style("user-select", "none")
+							.style("opacity","0")
+							.style("border",'4px solid white');
+
+		// Scatterplot scales
+	    var xScale = d3.scaleLinear().domain([30, 70]).range([0,width]);
+		var yScale = d3.scaleLinear().domain([68, 82]).range([height, 0]);
+		
+		// Drawing and labeling axes
+		svg.append("g")
+		  .attr("transform", "translate(0," + height + ")")
+		  .call(d3.axisBottom(xScale));
+		svg.append("g")
+		  .call(d3.axisLeft(yScale));
+
+		svg.append("text")
+		.attr("id", "plottitle")
+		.attr("x", width/2)
+		.attr("y", -40)
+		.attr("alignment-baseline", "central")
+		.attr("text-anchor", "middle")
+		.style("font-size", "25px")
+		.text("State Political Leaning vs. Percentage Married");
+
+		svg.append("text")
+		.attr("id", "xlabel")
+		.attr("x", width/2)
+		.attr("y", 645)
+		.attr("alignment-baseline", "central")
+		.attr("text-anchor", "middle")
+		.text("Percentage Republican");
+
+		svg.append("text")
+		.attr("id", "ylabel")
+		.attr("x", -275)
+		.attr("y", -50)
+		.attr("alignment-baseline", "central")
+		.attr("text-anchor", "middle")
+		.attr("transform", "rotate(-90)")
+		.text("Percentage Women who have Married");
+
+		// Loading CSV files
+	    var normalGenerator = d3.randomNormal();
+		d3.csv("data/polls2004.csv", function(error, data) {
+			d3.csv("data/marriageData.csv", function(error2, data2) {
+				d3.csv("data/census2010.csv", function(error2, data3) {
+				pData= data;
+				mData = data2;
+				popData = data3;
+				for(var i = 0 ; i  < data.length; i++){
+						var obj = data[i];
+						var obj2;
+						var obj3;
+						var state1 =  obj.State;
+						var statefound = false;
+					for(var j =  0 ; j < data2.length; j++){
+						if(data2[j].State == state1){
+							obj2 = data2[j];
+							statefound = true;
+							break;
+						}
+					}
+					for(var j =  0 ; j < data3.length; j++){
+						if(data3[j].State == state1){
+							obj3 = data3[j];
+							break;
+						}
+					}
+
+					// Creating circles and labels for each state
+					if(state1 != "District of Columbia" && statefound ){
+						var g  = svg.append("g").attr('class','datapoint');
+						var circ = g.append("circle");
+						var radius = (Math.pow(Number(obj2.MarriedWomen)/100*1.3*obj3.Population/1000,0.33));
+						circ.attr('baseradius',radius);
+						circ.attr("r",radius)
+						.attr('fill',function (d){
+							var republicanratio = obj.PercentRepublican;
+							var democratratio = obj.PercentDemocratic;
+							return colorScale(republicanratio/100);
+						})
+						.attr('basecolor', circ.attr('fill'))
+						.attr('stroke','white')
+						.attr('stoke-width','0.5')
+						.attr('cx', xScale(obj.PercentRepublican))
+						.attr('cy', yScale(Number(obj2.MarriedWomen)))
+						.attr("id", obj.State+"")
+						.style('cursor','pointer')
+						;
+
+						g.append("text")
+							.text(obj.StateAbbrev)
+							.attr("x", xScale(obj.PercentRepublican))
+							.attr("y", yScale(obj2.MarriedWomen)+1)
+							.attr("font-size", Math.min(15,radius) +"px")
+							.attr("font-family", "Roboto Condensed")
+							.attr("text-anchor", "middle")
+							.attr("alignment-baseline", "middle")
+							.attr("fill", "white")
+							.style("pointer-events", "none");
+
+						var statename = obj.State;
+
+						// Hover mouseover events and onlick event
+						circ.on("mouseenter", function (){
+							if(hoverex){
+								return;
+							}
+							SetHoverEx(false);
+							var floaty = 50;
+							hoverypos = ($(this).position().top+floaty-10+25);
+							hoverxpos = ($(this).position().left+30);
+							var ypos = hoverypos;
+							var xpos = hoverxpos;
+							hoverpop.style("visibility", "hidden")
+								hoverpop.style("transition","opacity  600ms ease-out, top  600ms ease-out, left  600ms ease-out");
+							makePlot(this.id);
+							hoverpop.style("visibility", "visible");
+							var options = {};
+						
+							hoverpop.style("top", (ypos-floaty)+"px")
+							.style("left", (xpos)+"px");
+							hoverpop.style("transform","scale(0.6) translate(-355px,-370px)")
+							.style("opacity","1");
+								
+							clearInterval(lineupdate);
+							$('.line').css('opacity','1');
+							lineupdate = setInterval( function(){
+								
+								$('.line').lineupdate($('#svgMain').position().left+80+20,$('#svgMain').position().top+110-10-2+40,xpos-10-5-20+Number(circ.attr('r')),ypos-45-30+Number(circ.attr('r')));
+							},15);
+							d3.select(this).transition()
+								.attr('r',Number(d3.select(this).attr('baseradius')) + 5)
+								.attr('fill',tinycolor(d3.select(this).attr('basecolor')).saturate(0).brighten(25).toHexString() )
+							;
+						})	
+						.on("mouseout", function (){
+							if(!hoverex){
+								hoverpop.style("opacity","0");
+								clearInterval(lineupdate);
+								hoverpop.style("transition","opacity  300ms ease-out, top  600ms ease-out, left  600ms ease-out");
+							}	
+								
+								$('.line').css('opacity','0');
+								d3.select(this).transition()
+									.attr('r',Number(d3.select(this).attr('baseradius')) )
+									.attr('fill',(d3.select(this).attr('basecolor')) )
+								;
+							
+						})
+						.on("click", function (){
+							SetHoverEx(true);
+							d3.select(this).transition()
+									.attr('r',Number(d3.select(this).attr('baseradius')) )
+									.attr('fill',(d3.select(this).attr('basecolor')) );
+							$('.line').css('opacity','0');
+						});
+					}else{
+						console.log(state1 + " was not included!!!");
+					}
+				}
+				
+					// Extends the hover
+					function SetHoverEx(b){
+						if(b){
+							hoverex = true;
+							hoverpop.style('top',parseInt(hoverpop.style('top'))-110 + "px");
+							hoverpop.transition()
+								.style('height',heighthoverex);
+								
+							hoverpop.selectAll('*').style('pointer-events','none');
+							hoverpop.style('pointer-events','visibleFill');
+							hoverpop.on("mouseout", function(){SetHoverEx(false);})
+								.on("click", function(){SetHoverEx(false);});
+								
+							
+						}else{
+							hoverex= false;
+							hoverpop.transition()
+								.style('height',heighthover)
+								;
+							hoverpop.style('opacity',0);
+							hoverpop.style('top',hoverypos+ "px");
+							hoverpop.style('pointer-events','none');
+						}
+					
+					}
+				});
+			});
+		});
+		
+		// Creates the visualizations within the hover
+		function makePlot(state) {
+			var height = 250;
+
+			console.log("Displaying hover for " + state);
+			
+			var barBase = 180;
+
+			var yScale = d3.scaleLinear()
+			.rangeRound([height-120, 0])
+			.domain([85, 60]);
+			var svg = d3.select("#svgMain");
+			svg
+			.selectAll("*")
+			.remove();
+
+				
+				var marriageData = [];
+				var marriedCouples = [];
+				d3.map(mData, function (d) {
+					marriageData.push([d.State, Number(d.MarriedMen), Number(d.MarriedWomen)]);
+					marriedCouples.push({State: d.State, marriedStat: Number(d.MarriedFamilies)});
+				});
+
+				// Construct men and women barcharts
+				var barxoffset = 0;
+				for (var i = 0; i < marriageData.length; i++) {
+					if (marriageData[i][0] == state) {
+
+						/*<div>Icons made by <a href="http://www.flaticon.com/authors/simpleicon" title="SimpleIcon">SimpleIcon</a> from <a href="http://www.flaticon.com" title="Flaticon">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div>*/
+						
+						/*
+						<div>Icons made by <a href="http://www.flaticon.com/authors/simpleicon" title="SimpleIcon">SimpleIcon</a> from <a href="http://www.flaticon.com" title="Flaticon">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div>
+						*/
+
+						// Men who have married bar
+						svg
+						.append("rect")
+						.attr("id", "maleBar")
+						.attr("x", 240 +barxoffset)
+						.attr("y", barBase-yScale(marriageData[i][1]))
+						.attr("width", 50)
+						.attr("height", yScale(marriageData[i][1]))
+						.style("fill", "#89bffa");
+						var imgsizeoffset = -10;
+						
+						// Men who have married icon
+						svg
+						.append("image")
+						.attr('xlink:href',"images/business-man.png")
+						.attr("x", 240 +barxoffset-imgsizeoffset/2)
+						.attr("y", barBase-yScale(marriageData[i][1])-55-imgsizeoffset)
+						.attr("width", 50+imgsizeoffset)
+						.attr("height", 50+imgsizeoffset)
+						.attr('opacity', 0.5);
+						
+						// Men who have married text
+						var textsize = "20px";
+						
+						svg
+						.append("text")
+						.attr("id", "maleText")
+						.attr("x", 265+barxoffset)
+						.attr("y", barBase+20-yScale(marriageData[i][1]))
+						.style("fill", "white")
+						.style("text-anchor", "middle")
+						.style("font-size",textsize)
+						.text(Math.round(Number(marriageData[i][1]))+"");
+
+						// Women who have married bar
+						svg
+						.append("rect")
+						.attr("id", "femaleBar")
+						.attr("x", 300+barxoffset)
+						.attr("y", barBase-yScale(marriageData[i][2]))
+						.attr("width", 50)
+						.attr("height", yScale(marriageData[i][2]))
+						.style("fill", "#ef58c6")
+
+						// Women who have married icon
+						svg
+						.append("image")
+						.attr('xlink:href',"images/business-woman.png")
+						.attr("x", 300 +barxoffset-imgsizeoffset/2)
+						.attr("y", barBase-yScale(marriageData[i][2])-55-imgsizeoffset)
+						.attr("width", 50+imgsizeoffset)
+						.attr("height", 50+imgsizeoffset)
+						.attr('opacity', 0.5);
+						
+						// Women who have married text
+						svg
+						.append("text")
+						.attr("id", "femaleText")
+						.attr("x", 325+barxoffset)
+						.attr("y", barBase+20-yScale(marriageData[i][2]))
+						.style("fill", "white")
+						.style("text-anchor", "middle")
+						.style("font-size",textsize)
+						.text(Math.round(Number(marriageData[i][2]))+"");
+						
+						// Hover container
+						var pedeheight = 5; 
+						svg
+						.append("rect")
+						.attr('x', 220+barxoffset +'px')
+						.attr('y', -pedeheight+barBase+'px')
+						.attr('width', 153)
+						.attr('height', pedeheight+1)
+						.attr('fill','rgba(255,255,255,1)');	
+						
+						svg.append('text')
+							.attr('x', 290)
+							.attr('y', barBase+17)
+							.style('text-anchor','middle')
+							.style('alignment-baseline','middle')
+							.style('font-size','1.2em')
+							.text('%married')
+							.attr('fill','rgba(0,0,0,0.8)');
+
+						svg.append('text')
+							.attr('x', 200)
+							.attr('y', barBase+60)
+							.style('text-anchor', 'middle')
+							.style('alignment-baseline', 'middle')
+							.style('font-size', '1.3em')
+							.text(function (){
+								return "TOTAL POPULATION";
+							});
+						svg.append('text')
+							.attr('x', 200)
+							.attr('y', barBase+115)
+							.style('text-anchor', 'middle')
+							.style('alignment-baseline', 'middle')
+							.style('font-size', '3.2em')
+							.attr('fill', '#ED5FAC')
+							.text(function (){
+								return popData[i].Population;
+							});
+						svg.append('text')
+							.attr('x', 180)
+							.attr('y', barBase+170)
+							.style('text-anchor', 'middle')
+							.style('alignment-baseline', 'middle')
+							.style('font-size', '1.3em')
+							
+							.text("DIVORCE RATE PER 1000 PEOPLE: ");
+
+						svg.append('text')
+							.attr('x', 350)
+							.attr('y', barBase+170)
+							.style('text-anchor', 'middle')
+							.style('alignment-baseline', 'middle')
+							.style('font-size', '1.8em')
+							.attr('fill', '#ED5FAC')
+							.text(function () {
+								var divorcenumnormal;
+								if (Number(mData[i].Divorce) == 0){
+									x = "NA";
+									divorcenumnormal = x;
+								}
+								else{
+									divorcenumnormal = Number(mData[i].Divorce);
+								}
+								return divorcenumnormal; 
+						});
+
+						svg.append('text')
+							.attr('x', 125)
+							.attr('y', barBase+210)
+							.style('text-anchor', 'middle')
+							.style('alignment-baseline', 'middle')
+							.style('font-size', '1.3em')
+							.text("# WOMEN MARRIED: ");
+
+						svg.append('text')
+							.attr('x', 300)
+							.attr('y', barBase+210)
+							.style('text-anchor', 'middle')
+							.style('alignment-baseline', 'middle')
+							.style('font-size', '1.8em')
+							.attr('fill', '#ED5FAC')
+							.text(function () {
+								var marriedwomen = Math.round(mData[i].MarriedWomen * popData[i].Population * 0.005);
+								
+								return marriedwomen; 
+						});
+
+						svg.append('text')
+							.attr('x', 110)
+							.attr('y', barBase+260)
+							.style('text-anchor', 'middle')
+							.style('alignment-baseline', 'middle')
+							.style('font-size', '1.3em')
+							.text("# MEN MARRIED: ");
+
+						svg.append('text')
+							.attr('x', 270)
+							.attr('y', barBase+260)
+							.style('text-anchor', 'middle')
+							.style('alignment-baseline', 'middle')
+							.style('font-size', '1.8em')
+							.attr('fill', '#ED5FAC')
+							.text(function () {
+								var marriedmen = Math.round(mData[i].MarriedMen * popData[i].Population* 0.005);
+								return marriedmen; 
+						});
+					}
+				}
+
+				// Political data donut chart
+				var radiusadjust = -5;
+					for (var i = 0; i < pData.length; i++) {
+
+						if(pData[i].State == state){
+						console.log(pData[i]);
+						var color = d3.scaleOrdinal(d3.schemeCategory20b);
+						var vis = svg;
+						vis.append("path").attr("d", d3.arc()
+							.innerRadius(70+radiusadjust)
+							.outerRadius(75+radiusadjust)
+							.startAngle(0)
+							.endAngle(2*Math.PI)
+						).attr("transform", "translate(" +115+ "," + height/2+ ")")
+						.attr('fill','#FFFFFF');
+						
+						// Determine percent Republican and Democrat
+						var percrep = Math.round(Number(pData[i].PercentRepublican));
+						var percdem = Math.round(Number(pData[i].PercentDemocratic));
+						var percent ;
+						var isrepublican = true;
+						if(percrep > percdem){
+							percent = percrep;
+						}else{
+							percent = percdem;
+							isrepublican = false;
+						}
+						
+						// Arc of donut chart
+						var arc = d3.arc()
+							.innerRadius(70+radiusadjust)
+							.outerRadius(75+radiusadjust)
+							.startAngle(0)
+							.endAngle(Number(pData[i].PercentRepublican)/100*2*Math.PI);
+						vis.append("path").attr("d",arc)
+						.attr("transform", "translate(" +115+ "," + height/2+ ")")
+						.attr('fill', isrepublican?'#ff7b7b':'#81bbfb' );
+						
+						// Percent Republican/Democrat text
+						var textcolor = "rgba(0,0,0,0.75)"
+						var txt = vis.append('text')
+							.text(  percent + "%")
+							.attr('x', 115)
+							.attr('y', 125-4)
+							.style('text-anchor','middle')
+							.style('alignment-baseline','central')
+							.attr('fill',textcolor)
+							.style('font-size','3.4em');
+						
+						 vis.append('text')
+							.attr('x', 115)
+							.attr('y', 158-4)
+							.style('text-anchor','middle')
+							.style('alignment-baseline','middle')
+							.style('font-size','1.25em')
+							.attr('fill',textcolor)
+							.text( isrepublican? 'republican' :'democratic');
+						
+						// Specific state name hovered over
+						 vis.append('text')
+							.attr('x', widthhover/2)
+							.attr('y', 35)
+							.style('text-anchor','middle')
+							.style('font-size','1.65em')
+							.attr('fill',"rgba(0,0,0,0.75)")
+							.text(state);
+						break;
+						}
+					}
+
+	};
+
+	</script>
+
+	<!-- Results of visualization -->
+	<div id= "details">
+		<p>An upward trend indicates that stronger Republican affiliations correlate with higher rates of marriage in men and women. Broken down by gender, the percentages of married men and married women per state also increase as overall state Republican affiliation increases, with a stronger correlation between married women and political standing.</p>
+	</div>
+
+	<!-- Linked sources -->
+	<footer>
+	
+		<div id = "links">
+			Created by Sophia Deng (syd6), Eric Li (ezl4), and Kimberly Lee (kwl38)<br><br>
+			--<br>Sources<br>
+			<a href = "http://www.gallup.com/poll/14746/gallup-review-party-support-2004.aspx" target = "_blank">State Party Affiliations</a><br>
+			<a href = "http://www.statemaster.com/graph/lif_per_of_men_who_nev_mar-percent-men-who-never-married" target = "_blank">Percentage of married men per state</a><br>
+			<a href = "http://www.statemaster.com/graph/lif_per_of_wom_who_nev_mar-percent-women-who-never-married" target = "_blank">Percentage of married women per state</a><br>
+			<a href = "http://www.statemaster.com/graph/lif_per_of_hou_tha_are_mar_fam-percent-households-married-couple-families" target = "_blank">Percentage of married-couple families</a>
+			<br>
+			<a href = "https://www.infoplease.com/us/marital-status/divorce-rates-state-1990a2009 ">Divorce Rate per 1000 people</a>
+		</div>
+	</footer>
+</body>
+</html>
