@@ -1,27 +1,28 @@
 <!doctype HTML>
 <html>
 	<head>
+		<meta charset="utf-8">
 		<script src="https://d3js.org/d3.v4.min.js"></script>
+        <link href="/d3-geomap/css/d3.geomap.css" rel="stylesheet">
+        <script src="/d3-geomap/vendor/d3.geomap.dependencies.min.js"></script>
+        <script src="/d3-geomap/js/d3.geomap.min.js"></script>
 	</head>
 	<body>
 		<!--notes: 
 		find out how many different types of disasters exist
 
 	-->
-		
+		<div id="map"></div>
 
 		<script>
 			/*SVG*/
-			width = 400;
+		/*	width = 400;
 			height = 800;
 			margins = {top: 20, right: 20, bottom: 20, left: 40};
 			var svg = d3.select("body")
 						.append("svg")
 						.attr("width", width)
                			.attr("height", height);
-			
-			//y axis upper range: 5000000, lower range: 101
-			//x axis: types, years 
 
 			xRange = d3.scaleLinear().range([margins.left, width - margins.right]).domain([0, 300]);
 			yRange = d3.scaleLinear().range([height - margins.top, margins.bottom]).domain([101, 5000000]);
@@ -34,6 +35,16 @@
 			chart.append("g")
 				.call(yAxis)
 				.attr("transform", "translate(74,20)");
+		*/
+			//drawing the map
+
+
+			//credits to: https://d3-geomap.github.io
+			var map = d3.geomap()
+    					.geofile('/d3-geomap/topojson/world/countries.json');
+
+			d3.select('#map')
+    			.call(map.draw, map);
 
 			d3.csv("disasters_killed_over100.csv", function(data){
 				//variables
@@ -114,16 +125,10 @@
 				disastersFrequency = mostTraumatizingDisasters(data);
 				console.log(disastersFrequency);
 
-
-
 				/*****FUNCTION: map countries to disasters most commonly had*/
 				
-				
-
-
-
-
-
+				/*****FUNCTION: initialize the map*/
+				//location pins: use this icon? https://fontawesome.com/icons/map-marker?style=solid
 
 				
 				
