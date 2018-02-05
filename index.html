@@ -3,9 +3,13 @@
 	<head>
 		<meta charset="utf-8">
 		<script src="https://d3js.org/d3.v4.min.js"></script>
-        <link href="/d3-geomap/css/d3.geomap.css" rel="stylesheet">
+        <!--<link href="/d3-geomap/css/d3.geomap.css" rel="stylesheet">
         <script src="/d3-geomap/vendor/d3.geomap.dependencies.min.js"></script>
-        <script src="/d3-geomap/js/d3.geomap.min.js"></script>
+        <script src="/d3-geomap/js/d3.geomap.min.js"></script>-->
+        <script src="//cdnjs.cloudflare.com/ajax/libs/d3/3.5.3/d3.min.js"></script>
+		<script src="//cdnjs.cloudflare.com/ajax/libs/topojson/1.6.9/topojson.min.js"></script>
+		<script src="/datamaps.world.min.js"></script>
+		
 	</head>
 	<body>
 		<!--notes: 
@@ -13,8 +17,13 @@
 
 	-->
 		<div id="map"></div>
+		<div id="container" style="position: relative; width: 500px; height: 300px;"></div>
+	
+		
+
 
 		<script>
+			var map = new Datamap({element: document.getElementById('container')});
 			/*SVG*/
 		/*	width = 400;
 			height = 800;
@@ -40,11 +49,7 @@
 
 
 			//credits to: https://d3-geomap.github.io
-			var map = d3.geomap()
-    					.geofile('/d3-geomap/topojson/world/countries.json');
-
-			d3.select('#map')
-    			.call(map.draw, map);
+			
 
 			d3.csv("disasters_killed_over100.csv", function(data){
 				//variables
@@ -129,7 +134,12 @@
 				
 				/*****FUNCTION: initialize the map*/
 				//location pins: use this icon? https://fontawesome.com/icons/map-marker?style=solid
+				
+				/*var map = d3.geomap()
+    					.geofile('/d3-geomap/topojson/world/countries.json');
 
+				d3.select('#map')
+    				.call(map.draw, map);*/
 				
 				
 			});
